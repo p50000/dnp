@@ -5,7 +5,7 @@ service Registry {
     rpc register(TRegisterRequest) returns (TRegisterResponse);
     rpc deregister(TDeregisterRequest) returns (TSuccessResponse);
     rpc populate_finger_table(TPopulateFingerTableRequest) returns (TPopulateFingerTableResponse);
-    rpc get_chord_info(TGetChordInfoRequest) returns (TGetChordInfoResponse);
+    rpc get_chord_info(TEmpty) returns (TGetChordInfoResponse);
 }
 
 message TSuccessResponse {
@@ -43,22 +43,16 @@ message TPopulateFingerTableResponse {
     repeated TIpAndPort nodes = 1;
 }
 
-message TGetChordInfoRequest {
-}
-
 message TGetChordInfoResponse {
     repeated TIpAndPort nodes = 1;
 }
 
 service Node {
     rpc service_info(TEmpty) returns (TSuccessResponse);
-    rpc register(TGetFingerTableRequest) returns (TGetFingerTableResponse);
+    rpc get_finger_table(TEmpty) returns (TGetFingerTableResponse);
     rpc save(TSaveRequest) returns (TSuccessResponse);
     rpc find(TKeyRequest) returns (TSuccessResponse);
     rpc remove(TKeyRequest) returns (TSuccessResponse);
-}
-
-message TGetFingerTableRequest {
 }
 
 message TGetFingerTableResponse {

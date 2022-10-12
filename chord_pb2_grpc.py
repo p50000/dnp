@@ -36,7 +36,7 @@ class RegistryStub(object):
                 )
         self.get_chord_info = channel.unary_unary(
                 '/Registry/get_chord_info',
-                request_serializer=chord__pb2.TGetChordInfoRequest.SerializeToString,
+                request_serializer=chord__pb2.TEmpty.SerializeToString,
                 response_deserializer=chord__pb2.TGetChordInfoResponse.FromString,
                 )
 
@@ -99,7 +99,7 @@ def add_RegistryServicer_to_server(servicer, server):
             ),
             'get_chord_info': grpc.unary_unary_rpc_method_handler(
                     servicer.get_chord_info,
-                    request_deserializer=chord__pb2.TGetChordInfoRequest.FromString,
+                    request_deserializer=chord__pb2.TEmpty.FromString,
                     response_serializer=chord__pb2.TGetChordInfoResponse.SerializeToString,
             ),
     }
@@ -192,7 +192,7 @@ class Registry(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/Registry/get_chord_info',
-            chord__pb2.TGetChordInfoRequest.SerializeToString,
+            chord__pb2.TEmpty.SerializeToString,
             chord__pb2.TGetChordInfoResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
@@ -212,9 +212,9 @@ class NodeStub(object):
                 request_serializer=chord__pb2.TEmpty.SerializeToString,
                 response_deserializer=chord__pb2.TSuccessResponse.FromString,
                 )
-        self.register = channel.unary_unary(
-                '/Node/register',
-                request_serializer=chord__pb2.TGetFingerTableRequest.SerializeToString,
+        self.get_finger_table = channel.unary_unary(
+                '/Node/get_finger_table',
+                request_serializer=chord__pb2.TEmpty.SerializeToString,
                 response_deserializer=chord__pb2.TGetFingerTableResponse.FromString,
                 )
         self.save = channel.unary_unary(
@@ -243,7 +243,7 @@ class NodeServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def register(self, request, context):
+    def get_finger_table(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -275,9 +275,9 @@ def add_NodeServicer_to_server(servicer, server):
                     request_deserializer=chord__pb2.TEmpty.FromString,
                     response_serializer=chord__pb2.TSuccessResponse.SerializeToString,
             ),
-            'register': grpc.unary_unary_rpc_method_handler(
-                    servicer.register,
-                    request_deserializer=chord__pb2.TGetFingerTableRequest.FromString,
+            'get_finger_table': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_finger_table,
+                    request_deserializer=chord__pb2.TEmpty.FromString,
                     response_serializer=chord__pb2.TGetFingerTableResponse.SerializeToString,
             ),
             'save': grpc.unary_unary_rpc_method_handler(
@@ -323,7 +323,7 @@ class Node(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def register(request,
+    def get_finger_table(request,
             target,
             options=(),
             channel_credentials=None,
@@ -333,8 +333,8 @@ class Node(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/Node/register',
-            chord__pb2.TGetFingerTableRequest.SerializeToString,
+        return grpc.experimental.unary_unary(request, target, '/Node/get_finger_table',
+            chord__pb2.TEmpty.SerializeToString,
             chord__pb2.TGetFingerTableResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
