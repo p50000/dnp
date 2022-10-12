@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+service Registry {
+    rpc register(TRegisterRequest) returns (TRegisterResponse);
+    rpc deregister(TDeregisterRequest) returns (TSuccessResponse);
+    rpc populate_finger_table(TPopulateFingerTableRequest) returns (TPopulateFingerTableResponse);
+    rpc get_chord_info(TGetChordInfoRequest) returns (TGetChordInfoResponse);
+}
+
+message TSuccessResponse {
+    bool is_successful = 1;
+    string message = 2;
+}
+
+message TRegisterRequest {
+    string ipaddr = 1;
+    int32 port = 2;
+}
+
+message TRegisterResponse {
+    int32 id = 1;
+    string message = 2;
+}
+
+message TDeregisterRequest {
+    int32 id = 1;
+}
+
+message TIpAndPort {
+    string ipaddr = 1;
+    int32 port = 2;
+}
+
+message TPopulateFingerTableRequest {
+    int32 id = 1;
+}
+
+message TPopulateFingerTableResponse {
+    repeated TIpAndPort nodes = 1;
+}
+
+message TGetChordInfoRequest {
+}
+
+message TGetChordInfoResponse {
+    repeated TIpAndPort nodes = 1;
+}
+
+service Node {
+    rpc register(TGetFingerTableRequest) returns (TGetFingerTableResponse);
+    rpc save(TSaveRequest) returns (TSuccessResponse);
+    rpc find(TKeyRequest) returns (TSuccessResponse);
+    rpc remove(TKeyRequest) returns (TSuccessResponse);
+}
+
+message TGetFingerTableRequest {
+}
+
+message TGetFingerTableResponse {
+    repeated TIpAndPort nodes = 1;
+}
+
+message TSaveRequest {
+    string key = 1;
+    string text = 2;
+}
+
+message TKeyRequest {
+    string key = 1;
+}
+
+
