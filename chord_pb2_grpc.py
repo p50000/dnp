@@ -14,6 +14,11 @@ class RegistryStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.service_info = channel.unary_unary(
+                '/Registry/service_info',
+                request_serializer=chord__pb2.TEmpty.SerializeToString,
+                response_deserializer=chord__pb2.TSuccessResponse.FromString,
+                )
         self.register = channel.unary_unary(
                 '/Registry/register',
                 request_serializer=chord__pb2.TRegisterRequest.SerializeToString,
@@ -38,6 +43,12 @@ class RegistryStub(object):
 
 class RegistryServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def service_info(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def register(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -66,6 +77,11 @@ class RegistryServicer(object):
 
 def add_RegistryServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'service_info': grpc.unary_unary_rpc_method_handler(
+                    servicer.service_info,
+                    request_deserializer=chord__pb2.TEmpty.FromString,
+                    response_serializer=chord__pb2.TSuccessResponse.SerializeToString,
+            ),
             'register': grpc.unary_unary_rpc_method_handler(
                     servicer.register,
                     request_deserializer=chord__pb2.TRegisterRequest.FromString,
@@ -95,6 +111,23 @@ def add_RegistryServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Registry(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def service_info(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Registry/service_info',
+            chord__pb2.TEmpty.SerializeToString,
+            chord__pb2.TSuccessResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def register(request,
@@ -174,6 +207,11 @@ class NodeStub(object):
         Args:
             channel: A grpc.Channel.
         """
+        self.service_info = channel.unary_unary(
+                '/Node/service_info',
+                request_serializer=chord__pb2.TEmpty.SerializeToString,
+                response_deserializer=chord__pb2.TSuccessResponse.FromString,
+                )
         self.register = channel.unary_unary(
                 '/Node/register',
                 request_serializer=chord__pb2.TGetFingerTableRequest.SerializeToString,
@@ -198,6 +236,12 @@ class NodeStub(object):
 
 class NodeServicer(object):
     """Missing associated documentation comment in .proto file."""
+
+    def service_info(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
 
     def register(self, request, context):
         """Missing associated documentation comment in .proto file."""
@@ -226,6 +270,11 @@ class NodeServicer(object):
 
 def add_NodeServicer_to_server(servicer, server):
     rpc_method_handlers = {
+            'service_info': grpc.unary_unary_rpc_method_handler(
+                    servicer.service_info,
+                    request_deserializer=chord__pb2.TEmpty.FromString,
+                    response_serializer=chord__pb2.TSuccessResponse.SerializeToString,
+            ),
             'register': grpc.unary_unary_rpc_method_handler(
                     servicer.register,
                     request_deserializer=chord__pb2.TGetFingerTableRequest.FromString,
@@ -255,6 +304,23 @@ def add_NodeServicer_to_server(servicer, server):
  # This class is part of an EXPERIMENTAL API.
 class Node(object):
     """Missing associated documentation comment in .proto file."""
+
+    @staticmethod
+    def service_info(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Node/service_info',
+            chord__pb2.TEmpty.SerializeToString,
+            chord__pb2.TSuccessResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
     def register(request,

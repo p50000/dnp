@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 service Registry {
+    rpc service_info(TEmpty) returns (TSuccessResponse);
     rpc register(TRegisterRequest) returns (TRegisterResponse);
     rpc deregister(TDeregisterRequest) returns (TSuccessResponse);
     rpc populate_finger_table(TPopulateFingerTableRequest) returns (TPopulateFingerTableResponse);
@@ -10,6 +11,9 @@ service Registry {
 message TSuccessResponse {
     bool is_successful = 1;
     string message = 2;
+}
+
+message TEmpty {
 }
 
 message TRegisterRequest {
@@ -47,6 +51,7 @@ message TGetChordInfoResponse {
 }
 
 service Node {
+    rpc service_info(TEmpty) returns (TSuccessResponse);
     rpc register(TGetFingerTableRequest) returns (TGetFingerTableResponse);
     rpc save(TSaveRequest) returns (TSuccessResponse);
     rpc find(TKeyRequest) returns (TSuccessResponse);
