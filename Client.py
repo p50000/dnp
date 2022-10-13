@@ -9,13 +9,17 @@ connected_to_registry = False
 is_connected = False
 
 def get_chord_info():
-    chord_info = stub.get_chord_info()
-    print(f'Got chord_info {chord_info}')
+    response = stub.get_chord_info()
+    for i in response.nodes:
+        print(f'{i.ip}: \t {i.port_and_addr}')
 
 
 def get_finger_table():
-    finger_table = stub.get_finger_table()
-    print(f'Got finger table {finger_table}')
+    response = stub.get_finger_table()
+    print(f'Node id: {response.id}')
+    print("Finger table:")
+    for i in response.nodes:
+        print(f'{i.ip}: \t {i.port_and_addr}')
 
 def make_connection(ip_and_port: str):
     try:
@@ -89,7 +93,3 @@ if __name__ == "__main__":
                 print(response)
     except KeyboardInterrupt:
         print("Terminating")
-            
-
-        # else:
-            
