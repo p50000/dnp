@@ -13,6 +13,15 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         self.addresses = {}
         self.m = m
         random.seed(0)
+    
+    def get_predecessor(self, succ_id):
+        return self.nodes.peekitem(self.nodes.bisect_key_left(id) - 1)
+
+    def get_predecessor(self, id):
+        return self.nodes.peekitem(self.nodes.bisect_key_left(id) - 1)
+
+    def print_node(name, id, addr):
+        print(name + "for is node with id " + str(id) + "and addr " + addr)
 
     def register(self, request, context):
         ipaddr = request.ipaddr, port = request.port
@@ -35,6 +44,18 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         
         return pb2.TSuccessResponse(is_successful = True, message = "Node  uccessfully deregistered")
 
+    def populate_finger_table(self, request, context):
+        id = request.id
+        print("Populating finger table for node " + str(id))
+
+        pred_id, pred_addr = self.get_predecessor(id)
+        self.print_node("Predecessor", pred_id, pred_addr)
+        pow = 1
+        for i in range(0, self.m):
+            
+
+
+
 class ConnectHandler(pb2_grpc.RegistryServicer):
     def service_info(self, request, context):
         return pb2.TSuccessResponse(is_successful = True, message = "Connected to Registry")
@@ -45,10 +66,10 @@ if __name__ == '__main__':
     port = sys.argv[1]
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(), server)
-    pb2_grpc.add_ConnectServicer_to_server(ServiceHandler(), server)
-
-
+    pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m = 5), server)
+    pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
+    
+    help(SortedDict.bisect_key_left)
     server.add_insecure_port(f'127.0.0.1:{port}')
     server.start()
     try:

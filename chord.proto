@@ -30,8 +30,8 @@ message TDeregisterRequest {
 }
 
 message TIdAndAddr {
-    string id = 1;
-    int32 port_and_addr = 2;
+    int32 id = 1;
+    string port_and_addr = 2;
 }
 
 message TPopulateFingerTableRequest {
