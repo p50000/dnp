@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 service Registry {
-    rpc service_info(TEmpty) returns (TSuccessResponse);
     rpc register(TRegisterRequest) returns (TRegisterResponse);
     rpc deregister(TDeregisterRequest) returns (TSuccessResponse);
     rpc populate_finger_table(TPopulateFingerTableRequest) returns (TPopulateFingerTableResponse);
@@ -30,9 +29,9 @@ message TDeregisterRequest {
     int32 id = 1;
 }
 
-message TIpAndPort {
-    string ipaddr = 1;
-    int32 port = 2;
+message TIdAndAddr {
+    string id = 1;
+    int32 port_and_addr = 2;
 }
 
 message TPopulateFingerTableRequest {
@@ -40,15 +39,14 @@ message TPopulateFingerTableRequest {
 }
 
 message TPopulateFingerTableResponse {
-    repeated TIpAndPort nodes = 1;
+    repeated TIdAndAddr nodes = 1;
 }
 
 message TGetChordInfoResponse {
-    repeated TIpAndPort nodes = 1;
+    repeated TIdAndAddr nodes = 1;
 }
 
 service Node {
-    rpc service_info(TEmpty) returns (TSuccessResponse);
     rpc get_finger_table(TEmpty) returns (TGetFingerTableResponse);
     rpc save(TSaveRequest) returns (TSuccessResponse);
     rpc find(TKeyRequest) returns (TSuccessResponse);
@@ -56,7 +54,7 @@ service Node {
 }
 
 message TGetFingerTableResponse {
-    repeated TIpAndPort nodes = 1;
+    repeated TIdAndAddr nodes = 1;
 }
 
 message TSaveRequest {
@@ -66,6 +64,10 @@ message TSaveRequest {
 
 message TKeyRequest {
     string key = 1;
+}
+
+service Connect {
+    rpc service_info(TEmpty) returns (TSuccessResponse);
 }
 
 

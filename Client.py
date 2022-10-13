@@ -1,5 +1,5 @@
 import grpc
-import chord_pb2 as bp2
+import chord_pb2 as pb2
 import chord_pb2_grpc as pb2_grpc
 
 channel = None
@@ -20,7 +20,7 @@ def get_finger_table():
 def make_connection(ip_and_port: str):
     try:
         channel = grpc.insecure_channel(ip_and_port)
-        stub = pb2_grpc.RegistryStub(channel)
+        stub = pb2_grpc.ConnectStub(channel)
     except:
         print("Something wrong")
         return "Error"
@@ -39,13 +39,15 @@ if __name__ == "__main__":
             command = user_input.split(' ')
             
             # Connection
-            if(command[0] == "connect"):
+            if (command[0] == "connect"):
                 ip_and_port = command[1]
                 service_info = make_connection(ip_and_port)
-                if(service_info == "Connected to Registry"):
+                if (service_info == "Connected to Registry"):
+                    stub = pb2_grpc.RegistryStub(channel)
                     connected_to_registry = True
                     is_connected = True
-                elif(service_info == "Connected to Node"):
+                elif (service_info == "Connected to Node"):
+                    stub = pb2_grpc.NodeStub(channel)
                     connected_to_registry = False
                     is_connected = True
                 else:
