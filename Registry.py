@@ -10,15 +10,16 @@ import random
 class ServiceHandler(pb2_grpc.RegistryServicer):
     def __init__(self, m):
         self.nodes = SortedDict()
-        self.addresses = {}
+        self.addresses = set()
         self.m = m
+        self.max_pow = 2 ** m
         random.seed(0)
     
     def get_predecessor(self, succ_id):
-        return self.nodes.peekitem(self.nodes.bisect_key_left(id) - 1)
+        return self.nodes.peekitem(self.nodes.bisect_key_left(succ_id) - 1)
 
-    def get_predecessor(self, id):
-        return self.nodes.peekitem(self.nodes.bisect_key_left(id) - 1)
+    def get_successor(self, id):
+        return self.nodes.peekitem(self.nodes.bisect_key_left(id) % self.max_pow)
 
     def print_node(name, id, addr):
         print(name + "for is node with id " + str(id) + "and addr " + addr)
@@ -47,12 +48,28 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
     def populate_finger_table(self, request, context):
         id = request.id
         print("Populating finger table for node " + str(id))
+        ids_in_table = set()
+        finger_table = []
 
         pred_id, pred_addr = self.get_predecessor(id)
+        ids_in_table.add(pred_id)
+        finger_table.append(pb2.TIdAndAddr(id = pred_id, port_and_addr = pred_addr))
         self.print_node("Predecessor", pred_id, pred_addr)
+
         pow = 1
         for i in range(0, self.m):
-            
+            succ_id, succ_addr = self.get_successor((id + pow) % self.max_pow)
+            if not succ_id in ids_in_table:
+                ids_in_table.add(succ_id)
+                finger_table.append(pb2.TIdAndAddr(id = succ_id, port_and_addr = succ_addr))
+        return pb2.TPopulateFingerTableResponse(nodes = finger_table)
+    
+    def get_chord_info(self, request, context):
+        chord = []
+
+        for key in self.nodes.keys():
+            chord.append(pb2.TIdAndAddr(id = key, pory_and_addr = self.nodes[key]))
+        return pb2.TGetChordInfoResponse(nodes = chord)
 
 
 

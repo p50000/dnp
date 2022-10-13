@@ -54,7 +54,8 @@ service Node {
 }
 
 message TGetFingerTableResponse {
-    repeated TIdAndAddr nodes = 1;
+    int32 id = 1;
+    repeated TIdAndAddr nodes = 2;
 }
 
 message TSaveRequest {
