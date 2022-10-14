@@ -9,13 +9,13 @@ connected_to_registry = False
 is_connected = False
 
 def get_chord_info():
-    response = stub.get_chord_info()
+    response = stub.get_chord_info(pb2.TEmpty())
     for i in response.nodes:
         print(f'{i.ip}: \t {i.port_and_addr}')
 
 
 def get_finger_table():
-    response = stub.get_finger_table()
+    response = stub.get_finger_table(pb2.TEmpty())
     print(f'Node id: {response.id}')
     print("Finger table:")
     for i in response.nodes:
@@ -29,7 +29,7 @@ def make_connection(ip_and_port: str):
         print("Something wrong")
         return "Error"
 
-    service_info = stub.service_info()
+    service_info = stub.service_info(pb2.TEmpty())
 
     print("got service info: " + f'{service_info}')
 

@@ -1,6 +1,7 @@
 from email import message
 import sys
 import grpc
+from music21 import key
 import chord_pb2_grpc as pb2_grpc
 import chord_pb2 as pb2
 from sortedcontainers import SortedDict
@@ -14,6 +15,12 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         self.m = m
         self.max_pow = 2 ** m
         random.seed(0)
+
+    def generate_id(self):
+        id = random.randint(0,2**self.m-1) 
+        while id in self.nodes:
+            id = random.randint(0,2**self.m-1) 
+        return id
     
     def get_predecessor(self, succ_id):
         return self.nodes.peekitem(self.nodes.bisect_key_left(succ_id) - 1)
@@ -30,7 +37,7 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
 
         if ipaddr_port in self.addresses:
             return pb2.TRegisterResponse(id = -1, message = "ERROR: This address is already registeref")
-        id = random.randint(0,2**self.m-1) 
+        id = self.generate_id()
 
         self.addresses.add(ipaddr_port)
         self.nodes[id] = ipaddr_port
