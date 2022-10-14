@@ -79,7 +79,24 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=True, message = f'{key} is saved in node {target_id}')
                 return msg
         else:
+<<<<<<< HEAD
             ip_and_port = find_node_in_finger_table()
+=======
+            ip_and_port = None
+
+            # Извени за этот кринж я правда не умею в питон
+            for node in finger_table.nodes:
+                if(node.id==lookup_result):
+                    ip_and_port = node.port_and_addr
+                    print(f'Founded ip and port for node with ip: {lookup_result}')
+
+            new_channel = grpc.insecure_channel(ip_and_port)
+            new_node_stub = pb2_grpc.NodeStub(new_channel) 
+            try:
+                return new_node_stub.save(key, text)
+            except:
+                return pb2.TSuccessResponse(is_successful=False, message = f'Could not save {key} in node {target_id}')
+>>>>>>> ab8be0a (fuck)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -110,6 +127,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         else:
             ip_and_port = find_node_in_finger_table()
 
+<<<<<<< HEAD
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
                 return msg
@@ -117,6 +135,17 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
                 return new_node_stub.remove(key)
+=======
+            # Извени за этот кринж я правда не умею в питон
+            for node in finger_table.nodes:
+                if node.id==lookup_result:
+                    ip_and_port = node.port_and_addr
+                    print(f'Founded ip and port for node with ip: {lookup_result}')
+
+            new_channel = grpc.insecure_channel(ip_and_port)
+            new_node_stub = pb2_grpc.NodeStub(new_channel) 
+            return new_node_stub.remove(key)
+>>>>>>> ab8be0a (fuck)
 
     def find(self, key):
         hash_value = zlib.adler32(key.encode())
