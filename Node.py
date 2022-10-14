@@ -10,6 +10,15 @@ args = sys.argv
 registry_info = args[1].split(':')
 node_info = args[2].split(':')
 
+def find_node_in_finger_table(lookup_result, finger_table):
+    ip_and_port = None
+    for node in finger_table.nodes:
+        if(node.id==lookup_result):
+            ip_and_port = node.port_and_addr
+    return ip_and_port
+
+
+
 class ServiceHandler(pb2_grpc.NodeServicer):
 
     def __init__(self, channel, node_ip, node_port):
@@ -57,6 +66,9 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.get_finger_table()
 
         lookup_result = lookup(finger_table, target_id)
+
+        if(lookup_result==-1):
+            print("Lookup failure")
         if(self.id==lookup_result):
             if(bool(self.table.get(key))):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'{key} is alredy exists in node {target_id}')
@@ -66,18 +78,15 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=True, message = f'{key} is saved in node {target_id}')
                 return msg
         else:
-            ip_and_port = None
+            ip_and_port = find_node_in_finger_table()
 
-            # Извени за этот кринж я правда не умею в питон
-            for node in finger_table.nodes:
-                if(node.id==lookup_result):
-                    ip_and_port = node.port_and_addr
-                    print(f'Founded ip and port for node with ip: {lookup_result}')
-
-            new_channel = grpc.insecure_channel(ip_and_port)
-            new_node_stub = pb2_grpc.NodeStub(new_channel) 
-            return new_node_stub.save(key, text)
-
+            if(ip_and_port==None):
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                return msg
+            else:
+                new_channel = grpc.insecure_channel(ip_and_port)
+                new_node_stub = pb2_grpc.NodeStub(new_channel) 
+                return new_node_stub.save(key, text)
 
     def remove(self, key):
         hash_value = zlib.adler32(key.encode())
@@ -85,6 +94,9 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.get_finger_table()
 
         lookup_result = lookup(finger_table, target_id)
+
+        if(lookup_result==-1):
+            print("Lookup failure")
         if(self.id==lookup_result):
             try:
                 del self.table[key]
@@ -95,17 +107,15 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=False, message=f'{key} is not exist in table on node {target_id}')
                 return msg
         else:
-            ip_and_port = None
+            ip_and_port = find_node_in_finger_table()
 
-            # Извени за этот кринж я правда не умею в питон
-            for node in finger_table.nodes:
-                if(node.id==lookup_result):
-                    ip_and_port = node.port_and_addr
-                    print(f'Founded ip and port for node with ip: {lookup_result}')
-
-            new_channel = grpc.insecure_channel(ip_and_port)
-            new_node_stub = pb2_grpc.NodeStub(new_channel) 
-            return new_node_stub.remove(key)
+            if(ip_and_port==None):
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                return msg
+            else: 
+                new_channel = grpc.insecure_channel(ip_and_port)
+                new_node_stub = pb2_grpc.NodeStub(new_channel) 
+                return new_node_stub.remove(key)
 
     def find(self, key):
         hash_value = zlib.adler32(key.encode())
@@ -113,7 +123,29 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.get_finger_table()
 
         lookup_result = lookup(finger_table, target_id)
+
+        if(lookup_result==-1):
+            print("Lookup failure")
+
         if(self.id==lookup_result):
+            ip_and_port = find_node_in_finger_table()
+
+            if(ip_and_port==None):
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                return msg
+            else:
+                msg = pb2.TSuccessResponse(is_successful=True, message=ip_and_port)
+                return msg
+        else:
+            ip_and_port = find_node_in_finger_table()
+
+            if(ip_and_port==None):
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                return msg
+            else:
+                new_channel = grpc.insecure_channel(ip_and_port)
+                new_node_stub = pb2_grpc.NodeStub(new_channel) 
+                return new_node_stub.find(key)
 
 
 if __name__ == "__main__":
