@@ -1,4 +1,5 @@
 from cgitb import lookup
+from email import message
 import sys
 from turtle import right
 import grpc
@@ -46,12 +47,12 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             return (k > left and k < self.m_pow) or (k <= right)
 
     def lookup(self, finger_table, k):
-        if self.in_right(finger_table[0].id, self.id):
+        if self.in_right(finger_table[0].id, self.id, k):
             return self.id
-        elif self.in_right(self.id, finger_table[1].id):
+        elif self.in_right(self.id, finger_table[1].id, k):
             return finger_table[1].id
         for i in range(1, len(finger_table) - 1):
-            if self.in_left(finger_table[i].id, finger_table[i + 1].id):
+            if self.in_left(finger_table[i].id, finger_table[i + 1, k].id):
                 return i
         return -1
 
@@ -153,8 +154,4 @@ if __name__ == "__main__":
     node_ip, node_port = node_info[0], node_info[1]
     
     channel = grpc.insecure_channel(f'{registry_ip}:{registry_port}')
-    registry_stub = pb2_grpc.RegistryStub(channel)
-    print("Connected to Registry")
-
-    msg = pb2.TRegisterRequest(ipaddr = node_ip, port = int(node_port))
-    response = registry_stub.register(msg)
+    nodeHandler = ServiceHandler(channel, node_ip)
