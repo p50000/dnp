@@ -1,6 +1,8 @@
+from cgitb import lookup
 import sys
 from turtle import right
 import grpc
+import zlib
 import chord_pb2 as pb2
 import chord_pb2_grpc as pb2_grpc
 
@@ -19,6 +21,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         self.m = register_info.message
         self.id = register_info.id
         self.m_pow = int(self.m) ** 2
+        self.table = dict()
         print("Connected to Registry")
 
     def in_left(self, left, right, k):
@@ -49,6 +52,30 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         return finger_table
 
     def save(self, key, text):
+        hash_value = zlib.adler32(key.encode())
+        target_id = hash_value % 2 ** self.m
+        finger_table = self.get_finger_table()
+
+        lookup_result = lookup(finger_table, target_id)
+        if(self.id==lookup_result):
+            if(bool(self.table.get(key))):
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'{key} is alredy exists in node {target_id}')
+                return msg
+            else:
+                self.table[key] = text
+        else:
+            ip_and_port = None
+
+            # Извени за этот кринж я правда не умею в питон
+            for node in finger_table.nodes:
+                if(node.id==lookup_result):
+                    ip_and_port = node.port_and_addr
+                    print(f'Founded ip and port for node with ip: {lookup_result}')
+
+            new_channel = grpc.insecure_channel(ip_and_port)
+            new_node_stub = pb2_grpc.NodeStub(new_channel) 
+            new_node_stub.save(key, text)
+
 
     def remove(self, key):
 
