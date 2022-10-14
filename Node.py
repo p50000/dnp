@@ -63,6 +63,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 return msg
             else:
                 self.table[key] = text
+                msg = pb2.TSuccessResponse(is_successful=True, message = f'{key} is saved in node {target_id}')
+                return msg
         else:
             ip_and_port = None
 
@@ -74,12 +76,45 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
             new_channel = grpc.insecure_channel(ip_and_port)
             new_node_stub = pb2_grpc.NodeStub(new_channel) 
-            new_node_stub.save(key, text)
+            return new_node_stub.save(key, text)
 
 
     def remove(self, key):
+        hash_value = zlib.adler32(key.encode())
+        target_id = hash_value % 2 ** self.m
+        finger_table = self.get_finger_table()
+
+        lookup_result = lookup(finger_table, target_id)
+        if(self.id==lookup_result):
+            try:
+                del self.table[key]
+                msg = pb2.TSuccessResponse(is_successful=True, message=f'{key} is removed from node {target_id}')
+                return msg
+
+            except:
+                msg = pb2.TSuccessResponse(is_successful=False, message=f'{key} is not exist in table on node {target_id}')
+                return msg
+        else:
+            ip_and_port = None
+
+            # Извени за этот кринж я правда не умею в питон
+            for node in finger_table.nodes:
+                if(node.id==lookup_result):
+                    ip_and_port = node.port_and_addr
+                    print(f'Founded ip and port for node with ip: {lookup_result}')
+
+            new_channel = grpc.insecure_channel(ip_and_port)
+            new_node_stub = pb2_grpc.NodeStub(new_channel) 
+            return new_node_stub.remove(key)
 
     def find(self, key):
+        hash_value = zlib.adler32(key.encode())
+        target_id = hash_value % 2 ** self.m
+        finger_table = self.get_finger_table()
+
+        lookup_result = lookup(finger_table, target_id)
+        if(self.id==lookup_result):
+
 
 if __name__ == "__main__":
     registry_ip, registry_port = registry_info[0], registry_info[1]
