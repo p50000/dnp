@@ -23,16 +23,21 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         return id
     
     def get_predecessor(self, succ_id):
-        return self.nodes.peekitem(self.nodes.bisect_key_left(succ_id) - 1)
+        return self.nodes.peekitem(self.nodes.bisect_left(succ_id) - 1)
 
     def get_successor(self, id):
-        return self.nodes.peekitem(self.nodes.bisect_key_left(id) % self.max_pow)
+        print(self.nodes)
+        print(f'The left id of node {id} is {self.nodes.bisect_left(id) % len(self.nodes)}')
+        return self.nodes.peekitem(self.nodes.bisect_left(id) % len(self.nodes))
 
-    def print_node(name, id, addr):
+    def print_node(self, name, id, addr):
         print(name + "for is node with id " + str(id) + "and addr " + addr)
 
     def register(self, request, context):
-        ipaddr = request.ipaddr, port = request.port
+        print(f'Recieved request ipaddr')
+        ipaddr = request.ipaddr
+        port = request.port
+        print(f'Recieved request: ipaddr = {request.ipaddr}, port = {request.port}')
         ipaddr_port = ipaddr + ":" + str(port)
 
         if ipaddr_port in self.addresses:
@@ -48,11 +53,14 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         id = request.id
         if not id in self.nodes:
             return pb2.TSuccessResponse(is_successful = False, message = "ERROR: no such id found")
-        self.nodes.pop(id)
+        self.addresses.remove(self.nodes.pop(id))
         
-        return pb2.TSuccessResponse(is_successful = True, message = "Node  uccessfully deregistered")
+        return pb2.TSuccessResponse(is_successful = True, message = "Node successfully deregistered")
 
     def populate_finger_table(self, request, context):
+        if len(self.addresses) == 0:
+            return pb2.TPopulateFingerTableResponse(nodes = [])
+
         id = request.id
         print("Populating finger table for node " + str(id))
         ids_in_table = set()
@@ -65,6 +73,7 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         pow = 1
         for i in range(0, self.m):
             succ_id, succ_addr = self.get_successor((id + pow) % self.max_pow)
+            pow = pow*2
             if not succ_id in ids_in_table:
                 ids_in_table.add(succ_id)
                 finger_table.append(pb2.TIdAndAddr(id = succ_id, port_and_addr = succ_addr))
@@ -87,13 +96,12 @@ class ConnectHandler(pb2_grpc.RegistryServicer):
 
 if __name__ == '__main__':
     ip_and_port = sys.argv[1]
-    m = sys.argv[2]
+    m = int(sys.argv[2])
     
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m), server)
     pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
     
-    help(SortedDict.bisect_key_left)
     server.add_insecure_port(ip_and_port)
     server.start()
     try:

@@ -13,19 +13,19 @@ class Client:
     def get_chord_info(self):
         response = self.stub.get_chord_info(pb2.TEmpty())
         for i in response.nodes:
-            print(f'{i.ip}: \t {i.port_and_addr}')
+            print(f'{i.id}: \t {i.port_and_addr}')
 
     def get_finger_table(self):
         response = self.stub.get_finger_table(pb2.TEmpty())
         print(f'Node id: {response.id}')
         print("Finger table:")
         for i in response.nodes:
-            print(f'{i.ip}: \t {i.port_and_addr}')
+            print(f'{i.id}: \t {i.port_and_addr}')
 
-    def make_connection(ip_and_port: str):
+    def make_connection(self, ip_and_port: str):
         try:
-            channel = grpc.insecure_channel(ip_and_port)
-            stub = pb2_grpc.ConnectStub(channel)
+            self.channel = grpc.insecure_channel(ip_and_port)
+            stub = pb2_grpc.ConnectStub(self.channel)
         except:
             print("Something wrong")
             return "Error"
@@ -47,23 +47,23 @@ class Client:
                     ip_and_port = command[1]
                     service_info = self.make_connection(ip_and_port)
                     if (service_info == "Connected to Registry"):
-                        stub = pb2_grpc.RegistryStub(self.channel)
-                        connected_to_registry = True
-                        is_connected = True
+                        self.stub = pb2_grpc.RegistryStub(self.channel)
+                        self.connected_to_registry = True
+                        self.is_connected = True
                     elif (service_info == "Connected to Node"):
-                        stub = pb2_grpc.NodeStub(self.channel)
-                        connected_to_registry = False
-                        is_connected = True
+                        self.stub = pb2_grpc.NodeStub(self.channel)
+                        self.connected_to_registry = False
+                        self.is_connected = True
                     else:
-                        connected_to_registry = False
-                        is_connected = False
+                        self.connected_to_registry = False
+                        self.is_connected = False
                     print(service_info)
 
                 # Get info
                 elif(command[0] == "get_info"):
-                    if(is_connected and connected_to_registry):
+                    if(self.is_connected and self.connected_to_registry):
                         self.get_chord_info()
-                    elif(is_connected and not connected_to_registry):
+                    elif(self.is_connected and not self.connected_to_registry):
                         self.get_finger_table()
                     else:
                         print("Not connected to any Node or Registry")    
@@ -77,20 +77,28 @@ class Client:
 
                     text = ' '.join(str(e) for e in command)
                     value_to_save = pb2.TSaveRequest(key = key, text = text)
-                    response = stub.save(value_to_save)
+                    response = self.stub.save(value_to_save)
                     print(response)
                     
                 # Remove
                 elif(command[0] == "remove"):
                     value_to_remove = pb2.TKeyRequest(key = command[1])
-                    response = stub.remove(value_to_remove)
+                    response = self.stub.remove(value_to_remove)
                     print(response)
                     
                 # Find
                 elif(command[0] == "find"):
                     value_to_find = pb2.TKeyRequest(key = command[1])
-                    response = stub.find(value_to_find)
+                    response = self.stub.find(value_to_find)
                     print(response)
+                    success = response.is_successful
+                    message = response.message
+                    id = message.split(' ')
+                    if(success):
+                        print(f'True, {command[1]} is saved in node {id[0]}')
+                    else:
+                        print(f'False, {command[1]} is not exist in node {id[0]}')
+
         except KeyboardInterrupt:
             print("Terminating")
 

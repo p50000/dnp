@@ -1,6 +1,4 @@
-from cgitb import lookup
 import sys
-from turtle import right
 import grpc
 import zlib
 import chord_pb2 as pb2
@@ -28,9 +26,12 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
         register_info = self.registry_stub.register(msg)
         # вот тут надо обработать респонс
+        if register_info.id== -1:
+            raise Exception("I don't know Python!")
+
         self.m = register_info.message
         self.id = register_info.id
-        self.m_pow = int(self.m) ** 2
+        self.m_pow = 2 ** int(self.m) 
         self.table = dict()
         print("Connected to Registry")
 
@@ -58,17 +59,18 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
 
     def get_finger_table(self, request, context):
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
-        return finger_table[1:]
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
+        print(finger_table)
+        return pb2.TGetFingerTableResponse(id = self.id, nodes = finger_table[1:])
 
     def save(self, request, context):
         text = request.text
         key = request.key
         hash_value = zlib.adler32(key.encode())
-        target_id = hash_value % 2 ** self.m
+        target_id = hash_value % self.m_pow
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
-        lookup_result = lookup(finger_table, target_id)
+        lookup_result = self.lookup(finger_table.nodes, target_id)
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -95,10 +97,10 @@ class ServiceHandler(pb2_grpc.NodeServicer):
     def remove(self, request, context):
         key = request.key
         hash_value = zlib.adler32(key.encode())
-        target_id = hash_value % 2 ** self.m
+        target_id = hash_value % self.m_pow
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
-        lookup_result = lookup(finger_table, target_id)
+        lookup_result = self.lookup(finger_table.nodes, target_id)
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -126,10 +128,10 @@ class ServiceHandler(pb2_grpc.NodeServicer):
     def find(self, request, context):
         key = request.key
         hash_value = zlib.adler32(key.encode())
-        target_id = hash_value % 2 ** self.m
+        target_id = hash_value % self.m_pow
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
-        lookup_result = lookup(finger_table, target_id)
+        lookup_result = self.lookup(finger_table.nodes, target_id)
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -138,16 +140,20 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
-                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'{target_id} Could not find ip and port for node {lookup_result}')
                 return msg
             else:
-                msg = pb2.TSuccessResponse(is_successful=True, message=ip_and_port)
-                return msg
+                if(key in self.table):
+                    msg = pb2.TSuccessResponse(is_successful=True, message=f'{target_id} {ip_and_port}')
+                    return msg
+                else:
+                    msg = pb2.TSuccessResponse(is_successful=False, message=f'{target_id} {ip_and_port}')
+                    return msg
         else:
             ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
-                msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
+                msg = pb2.TSuccessResponse(is_successful=False, message = f'{target_id} Could not find ip and port for node {lookup_result}')
                 return msg
             else:
                 new_channel = grpc.insecure_channel(ip_and_port)
@@ -156,8 +162,10 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 return new_node_stub.find(msg)
 
     def try_saving_to_succ(self, k, v):
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
-        ip_and_port = find_node_in_finger_table(1, finger_table)
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty()).nodes
+        if len(finger_table) < 2:
+            return pb2.TSuccessResponse(is_successful=True, message = f'No second node')
+        ip_and_port = finger_table[1]
         new_channel = grpc.insecure_channel(ip_and_port)
         new_node_stub = pb2_grpc.NodeStub(new_channel) 
         try:
@@ -167,11 +175,12 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
 
     def quit(self):
+        self.registry_stub.deregister(pb2.TDeregisterRequest(id=self.id))
         cnt = 0
         for k, v in self.table.items():
-            while not self.try_saving_to_succ(k, v).is_successful():
+            while not self.try_saving_to_succ(k, v).is_successful:
                 cnt += 1
-            print(f'Saved kay {k} after {cnt} attempts')
+            print(f'Saved ky {k} after {cnt} attempts')
 
 class ConnectHandler(pb2_grpc.RegistryServicer):
     def service_info(self, request, context):
@@ -186,15 +195,14 @@ if __name__ == "__main__":
 
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     server.add_insecure_port(f'{node_ip}:{node_port}')
-    server.start()
     
     channel = grpc.insecure_channel(f'{registry_ip}:{registry_port}')
-    nodeHandler = ServiceHandler(channel, node_ip)
-    pb2_grpc.add_NodeServicer_to_server(ServiceHandler(), server)
+    nodeHandler = ServiceHandler(channel, node_ip, node_port)
+    pb2_grpc.add_NodeServicer_to_server(nodeHandler, server)
     pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
     server.start()
     try:
         server.wait_for_termination()
-    except KeyboardInterrupt:
+    except:
         nodeHandler.quit()
         print('Quitting')
