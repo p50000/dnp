@@ -1,11 +1,13 @@
 from cgitb import lookup
-from email import message
 import sys
 from turtle import right
 import grpc
 import zlib
+
+from music21 import key
 import chord_pb2 as pb2
 import chord_pb2_grpc as pb2_grpc
+from concurrent import futures
 
 args = sys.argv
 registry_info = args[1].split(':')
@@ -57,11 +59,13 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         return -1
 
 
-    def get_finger_table(self):
+    def get_finger_table(self, request, context):
         finger_table = self.registry_stub.populate_finger_table()
-        return finger_table
+        return finger_table[1:]
 
-    def save(self, key, text):
+    def save(self, request, context):
+        text = request.text
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -79,24 +83,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=True, message = f'{key} is saved in node {target_id}')
                 return msg
         else:
-<<<<<<< HEAD
             ip_and_port = find_node_in_finger_table()
-=======
-            ip_and_port = None
-
-            # Извени за этот кринж я правда не умею в питон
-            for node in finger_table.nodes:
-                if(node.id==lookup_result):
-                    ip_and_port = node.port_and_addr
-                    print(f'Founded ip and port for node with ip: {lookup_result}')
-
-            new_channel = grpc.insecure_channel(ip_and_port)
-            new_node_stub = pb2_grpc.NodeStub(new_channel) 
-            try:
-                return new_node_stub.save(key, text)
-            except:
-                return pb2.TSuccessResponse(is_successful=False, message = f'Could not save {key} in node {target_id}')
->>>>>>> ab8be0a (fuck)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -106,7 +93,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
                 return new_node_stub.save(key, text)
 
-    def remove(self, key):
+    def remove(self, request, context):
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -127,7 +115,6 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         else:
             ip_and_port = find_node_in_finger_table()
 
-<<<<<<< HEAD
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
                 return msg
@@ -135,19 +122,9 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
                 return new_node_stub.remove(key)
-=======
-            # Извени за этот кринж я правда не умею в питон
-            for node in finger_table.nodes:
-                if node.id==lookup_result:
-                    ip_and_port = node.port_and_addr
-                    print(f'Founded ip and port for node with ip: {lookup_result}')
 
-            new_channel = grpc.insecure_channel(ip_and_port)
-            new_node_stub = pb2_grpc.NodeStub(new_channel) 
-            return new_node_stub.remove(key)
->>>>>>> ab8be0a (fuck)
-
-    def find(self, key):
+    def find(self, request, context):
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -177,10 +154,46 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
                 return new_node_stub.find(key)
 
+    def try_saving_to_succ(self, k, v):
+        finger_table = self.get_finger_table()
+        ip_and_port = find_node_in_finger_table(1, finger_table)
+        new_channel = grpc.insecure_channel(ip_and_port)
+        new_node_stub = pb2_grpc.NodeStub(new_channel) 
+        try:
+            return new_node_stub.save(pb2.TSaveRequest(key = k, value = v))
+        except:
+            return pb2.TSuccessResponse(is_successful=False, message = f'Failed to save key')
+
+
+    def quit(self):
+        cnt = 0
+        for k, v in self.table.items():
+            while not self.try_saving_to_succ(k, v).is_successful():
+                cnt += 1
+            print(f'Saved kay {k} after {cnt} attempts')
+
+class ConnectHandler(pb2_grpc.RegistryServicer):
+    def service_info(self, request, context):
+        return pb2.TSuccessResponse(is_successful = True, message = "Connected to Node")
+
+
+
 
 if __name__ == "__main__":
     registry_ip, registry_port = registry_info[0], registry_info[1]
     node_ip, node_port = node_info[0], node_info[1]
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server.add_insecure_port(f'{node_ip}:{node_port}')
+    server.start()
     
     channel = grpc.insecure_channel(f'{registry_ip}:{registry_port}')
     nodeHandler = ServiceHandler(channel, node_ip)
+    pb2_grpc.add_NodeServicer_to_server(ServiceHandler(), server)
+    pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
+    server.start()
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        nodeHandler.quit()
+        print('Quitting')

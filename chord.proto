@@ -39,7 +39,7 @@ message TPopulateFingerTableRequest {
 }
 
 message TPopulateFingerTableResponse {
-    repeated TIdAndAddr nodes = 1;
+    repeated TIdAndAddr nodes = 3;
 }
 
 message TGetChordInfoResponse {
