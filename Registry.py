@@ -59,7 +59,6 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         finger_table = []
 
         pred_id, pred_addr = self.get_predecessor(id)
-        ids_in_table.add(pred_id)
         finger_table.append(pb2.TIdAndAddr(id = pred_id, port_and_addr = pred_addr))
         self.print_node("Predecessor", pred_id, pred_addr)
 
@@ -75,7 +74,7 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         chord = []
 
         for key in self.nodes.keys():
-            chord.append(pb2.TIdAndAddr(id = key, pory_and_addr = self.nodes[key]))
+            chord.append(pb2.TIdAndAddr(id = key, port_and_addr = self.nodes[key]))
         return pb2.TGetChordInfoResponse(nodes = chord)
 
 
@@ -94,8 +93,12 @@ if __name__ == '__main__':
     pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m), server)
     pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
     
+<<<<<<< HEAD
     help(SortedDict.bisect_key_left)
     server.add_insecure_port(ip_and_port)
+=======
+    server.add_insecure_port(f'127.0.0.1:{port}')
+>>>>>>> 538d46f0566cff1a97be7c5a987161882a3ee426
     server.start()
     try:
         server.wait_for_termination()

@@ -3,8 +3,11 @@ import sys
 from turtle import right
 import grpc
 import zlib
+
+from music21 import key
 import chord_pb2 as pb2
 import chord_pb2_grpc as pb2_grpc
+from concurrent import futures
 
 args = sys.argv
 registry_info = args[1].split(':')
@@ -46,21 +49,23 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             return (k > left and k < self.m_pow) or (k <= right)
 
     def lookup(self, finger_table, k):
-        if self.in_right(finger_table[0].id, self.id):
+        if self.in_right(finger_table[0].id, self.id, k):
             return self.id
-        elif self.in_right(self.id, finger_table[1].id):
+        elif self.in_right(self.id, finger_table[1].id, k):
             return finger_table[1].id
         for i in range(1, len(finger_table) - 1):
-            if self.in_left(finger_table[i].id, finger_table[i + 1].id):
+            if self.in_left(finger_table[i].id, finger_table[i + 1, k].id):
                 return i
         return -1
 
 
-    def get_finger_table(self):
+    def get_finger_table(self, request, context):
         finger_table = self.registry_stub.populate_finger_table()
-        return finger_table
+        return finger_table[1:]
 
-    def save(self, key, text):
+    def save(self, request, context):
+        text = request.text
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -89,7 +94,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSaveRequest(key, text)
                 return new_node_stub.save(msg)
 
-    def remove(self, key):
+    def remove(self, request, context):
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -119,7 +125,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TKeyRequest(key)
                 return new_node_stub.remove(msg)
 
-    def find(self, key):
+    def find(self, request, context):
+        key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
         finger_table = self.get_finger_table()
@@ -150,14 +157,46 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TKeyRequest(key)
                 return new_node_stub.find(msg)
 
+    def try_saving_to_succ(self, k, v):
+        finger_table = self.get_finger_table()
+        ip_and_port = find_node_in_finger_table(1, finger_table)
+        new_channel = grpc.insecure_channel(ip_and_port)
+        new_node_stub = pb2_grpc.NodeStub(new_channel) 
+        try:
+            return new_node_stub.save(pb2.TSaveRequest(key = k, value = v))
+        except:
+            return pb2.TSuccessResponse(is_successful=False, message = f'Failed to save key')
+
+
+    def quit(self):
+        cnt = 0
+        for k, v in self.table.items():
+            while not self.try_saving_to_succ(k, v).is_successful():
+                cnt += 1
+            print(f'Saved kay {k} after {cnt} attempts')
+
+class ConnectHandler(pb2_grpc.RegistryServicer):
+    def service_info(self, request, context):
+        return pb2.TSuccessResponse(is_successful = True, message = "Connected to Node")
+
+
+
 
 if __name__ == "__main__":
     registry_ip, registry_port = registry_info[0], registry_info[1]
     node_ip, node_port = node_info[0], node_info[1]
+
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    server.add_insecure_port(f'{node_ip}:{node_port}')
+    server.start()
     
     channel = grpc.insecure_channel(f'{registry_ip}:{registry_port}')
-    registry_stub = pb2_grpc.RegistryStub(channel)
-    print("Connected to Registry")
-
-    msg = pb2.TRegisterRequest(ipaddr = node_ip, port = int(node_port))
-    response = registry_stub.register(msg)
+    nodeHandler = ServiceHandler(channel, node_ip)
+    pb2_grpc.add_NodeServicer_to_server(ServiceHandler(), server)
+    pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
+    server.start()
+    try:
+        server.wait_for_termination()
+    except KeyboardInterrupt:
+        nodeHandler.quit()
+        print('Quitting')
