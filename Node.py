@@ -3,8 +3,6 @@ import sys
 from turtle import right
 import grpc
 import zlib
-
-from music21 import key
 import chord_pb2 as pb2
 import chord_pb2_grpc as pb2_grpc
 from concurrent import futures
