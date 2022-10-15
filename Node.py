@@ -29,6 +29,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         if register_info.id== -1:
             raise Exception("I don't know Python!")
 
+        self.ip_and_port = f'{node_ip}:{node_port}'
         self.m = register_info.message
         self.id = register_info.id
         self.m_pow = 2 ** int(self.m) 
@@ -36,12 +37,14 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         print("Connected to Registry")
 
     def in_left(self, left, right, k):
+        print(f'Checking in_left for {left}, {right}')
         if right > left:
             return k >= left and k < right
         else:
             return (k >= left and k < self.m_pow) or (k < right)
     
     def in_right(self, left, right, k):
+        print(f'Checking in_right for {left}, {right}')
         if right > left:
             return k > left and k <= right
         else:
@@ -53,8 +56,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         elif self.in_right(self.id, finger_table[1].id, k):
             return finger_table[1].id
         for i in range(1, len(finger_table) - 1):
-            if self.in_left(finger_table[i].id, finger_table[i + 1, k].id):
-                return i
+            if self.in_left(finger_table[i].id, finger_table[i + 1].id, k):
+                return finger_table[i].id
         return -1
 
 
@@ -68,7 +71,10 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % self.m_pow
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
+
+        print(f'Finger table for node {self.id} is: ')
+        print(finger_table)
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
         print(f'SAVE: lookup_result for target_id: {target_id} is {lookup_result}')
@@ -92,14 +98,14 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else:
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                msg = pb2.TSaveRequest(key, text)
+                msg = pb2.TSaveRequest(key = key, text = text)
                 return new_node_stub.save(msg)
 
     def remove(self, request, context):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % self.m_pow
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
         print(f'REMOVE: lookup_result for target_id: {target_id} is {lookup_result}')
@@ -125,15 +131,17 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else: 
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                msg = pb2.TKeyRequest(key)
+                msg = pb2.TKeyRequest(key = key)
                 return new_node_stub.remove(msg)
 
     def find(self, request, context):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % self.m_pow
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
 
+        print(f'Finger table for node {self.id} is: ')
+        print(finger_table)
         lookup_result = self.lookup(finger_table.nodes, target_id)
         print(f'FIND: lookup_result for target_id: {target_id} is {lookup_result}')
 
@@ -141,18 +149,12 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             print("Lookup failure")
 
         if(self.id==lookup_result):
-            ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
-
-            if(ip_and_port==None):
-                msg = pb2.TSuccessResponse(is_successful=False, message = f'{target_id} Could not find ip and port for node {lookup_result}')
+            if(key in self.table):
+                msg = pb2.TSuccessResponse(is_successful=True, message=f'{target_id} {self.ip_and_port}')
                 return msg
             else:
-                if(key in self.table):
-                    msg = pb2.TSuccessResponse(is_successful=True, message=f'{target_id} {ip_and_port}')
-                    return msg
-                else:
-                    msg = pb2.TSuccessResponse(is_successful=False, message=f'{target_id} {ip_and_port}')
-                    return msg
+                msg = pb2.TSuccessResponse(is_successful=False, message=f'{target_id} {self.ip_and_port}')
+                return msg
         else:
             ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
@@ -162,11 +164,11 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else:
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                msg = pb2.TKeyRequest(key)
+                msg = pb2.TKeyRequest(key = key)
                 return new_node_stub.find(msg)
 
     def try_saving_to_succ(self, k, v):
-        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty()).nodes
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
         if len(finger_table) < 2:
             return pb2.TSuccessResponse(is_successful=True, message = f'No second node')
         ip_and_port = finger_table[1]
