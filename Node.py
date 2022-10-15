@@ -71,6 +71,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
+        print(f'SAVE: lookup_result for target_id: {target_id} is {lookup_result}')
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -101,6 +102,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
+        print(f'REMOVE: lookup_result for target_id: {target_id} is {lookup_result}')
+
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -132,6 +135,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
+        print(f'FIND: lookup_result for target_id: {target_id} is {lookup_result}')
 
         if(lookup_result==-1):
             print("Lookup failure")
