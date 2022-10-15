@@ -93,12 +93,8 @@ if __name__ == '__main__':
     pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m), server)
     pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
     
-<<<<<<< HEAD
     help(SortedDict.bisect_key_left)
     server.add_insecure_port(ip_and_port)
-=======
-    server.add_insecure_port(f'127.0.0.1:{port}')
->>>>>>> 538d46f0566cff1a97be7c5a987161882a3ee426
     server.start()
     try:
         server.wait_for_termination()
