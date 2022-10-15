@@ -78,7 +78,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=True, message = f'{key} is saved in node {target_id}')
                 return msg
         else:
-            ip_and_port = find_node_in_finger_table()
+            ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -86,7 +86,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else:
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                return new_node_stub.save(key, text)
+                msg = pb2.TSaveRequest(key, text)
+                return new_node_stub.save(msg)
 
     def remove(self, key):
         hash_value = zlib.adler32(key.encode())
@@ -107,7 +108,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=False, message=f'{key} is not exist in table on node {target_id}')
                 return msg
         else:
-            ip_and_port = find_node_in_finger_table()
+            ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -115,7 +116,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else: 
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                return new_node_stub.remove(key)
+                msg = pb2.TKeyRequest(key)
+                return new_node_stub.remove(msg)
 
     def find(self, key):
         hash_value = zlib.adler32(key.encode())
@@ -128,7 +130,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             print("Lookup failure")
 
         if(self.id==lookup_result):
-            ip_and_port = find_node_in_finger_table()
+            ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -137,7 +139,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 msg = pb2.TSuccessResponse(is_successful=True, message=ip_and_port)
                 return msg
         else:
-            ip_and_port = find_node_in_finger_table()
+            ip_and_port = find_node_in_finger_table(lookup_result, finger_table)
 
             if(ip_and_port==None):
                 msg = pb2.TSuccessResponse(is_successful=False, message = f'Could not find ip and port for node {lookup_result}')
@@ -145,7 +147,8 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             else:
                 new_channel = grpc.insecure_channel(ip_and_port)
                 new_node_stub = pb2_grpc.NodeStub(new_channel) 
-                return new_node_stub.find(key)
+                msg = pb2.TKeyRequest(key)
+                return new_node_stub.find(msg)
 
 
 if __name__ == "__main__":

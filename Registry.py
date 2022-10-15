@@ -87,14 +87,15 @@ class ConnectHandler(pb2_grpc.RegistryServicer):
 
 
 if __name__ == '__main__':
-    port = sys.argv[1]
-
+    ip_and_port = sys.argv[1]
+    m = sys.argv[2]
+    
     server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m = 5), server)
+    pb2_grpc.add_RegistryServicer_to_server(ServiceHandler(m), server)
     pb2_grpc.add_ConnectServicer_to_server(ConnectHandler(), server)
     
     help(SortedDict.bisect_key_left)
-    server.add_insecure_port(f'127.0.0.1:{port}')
+    server.add_insecure_port(ip_and_port)
     server.start()
     try:
         server.wait_for_termination()
