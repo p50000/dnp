@@ -60,7 +60,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
 
     def get_finger_table(self, request, context):
-        finger_table = self.registry_stub.populate_finger_table()
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
         return finger_table[1:]
 
     def save(self, request, context):
@@ -68,7 +68,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
-        finger_table = self.get_finger_table()
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = lookup(finger_table, target_id)
 
@@ -98,7 +98,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
-        finger_table = self.get_finger_table()
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = lookup(finger_table, target_id)
 
@@ -129,7 +129,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         key = request.key
         hash_value = zlib.adler32(key.encode())
         target_id = hash_value % 2 ** self.m
-        finger_table = self.get_finger_table()
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
 
         lookup_result = lookup(finger_table, target_id)
 
@@ -158,7 +158,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
                 return new_node_stub.find(msg)
 
     def try_saving_to_succ(self, k, v):
-        finger_table = self.get_finger_table()
+        finger_table = self.registry_stub.populate_finger_table(pb2.TEmpty())
         ip_and_port = find_node_in_finger_table(1, finger_table)
         new_channel = grpc.insecure_channel(ip_and_port)
         new_node_stub = pb2_grpc.NodeStub(new_channel) 
