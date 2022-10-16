@@ -158,16 +158,14 @@ class ServiceHandler(pb2_grpc.NodeServicer):
     def try_saving_to_succ(self, k, v):
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
         if len(finger_table) < 2:
+            print("ONE")
             return pb2.TSuccessResponse(is_successful=True, message = f'No second node')
         ip_and_port = finger_table[1].port_and_addr
         new_channel = grpc.insecure_channel(ip_and_port)
         new_node_stub = pb2_grpc.NodeStub(new_channel) 
-        try:
-            return new_node_stub.save(pb2.TSaveRequest(key = k, value = v))
-        except:
-            return pb2.TSuccessResponse(is_successful=False, message = f'Failed to save key')
 
-
+        return new_node_stub.save(pb2.TSaveRequest(key = k, text = v))
+        
     def quit(self):
         self.registry_stub.deregister(pb2.TDeregisterRequest(id=self.id))
         cnt = 0
@@ -196,6 +194,6 @@ if __name__ == "__main__":
     server.start()
     try:
         server.wait_for_termination()
-    except:
+    except KeyboardInterrupt:
         nodeHandler.quit()
         print('Quitting')
