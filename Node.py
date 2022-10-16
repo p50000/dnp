@@ -158,7 +158,6 @@ class ServiceHandler(pb2_grpc.NodeServicer):
     def try_saving_to_succ(self, k, v):
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
         if len(finger_table) < 2:
-            print("ONE")
             return pb2.TSuccessResponse(is_successful=True, message = f'No second node')
         ip_and_port = finger_table[1].port_and_addr
         new_channel = grpc.insecure_channel(ip_and_port)
