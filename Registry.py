@@ -1,7 +1,6 @@
 from email import message
 import sys
 import grpc
-from music21 import key
 import chord_pb2_grpc as pb2_grpc
 import chord_pb2 as pb2
 from sortedcontainers import SortedDict
@@ -26,18 +25,11 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
         return self.nodes.peekitem(self.nodes.bisect_left(succ_id) - 1)
 
     def get_successor(self, id):
-        print(self.nodes)
-        print(f'The left id of node {id} is {self.nodes.bisect_left(id) % len(self.nodes)}')
         return self.nodes.peekitem(self.nodes.bisect_left(id) % len(self.nodes))
 
-    def print_node(self, name, id, addr):
-        print(name + "for is node with id " + str(id) + "and addr " + addr)
-
     def register(self, request, context):
-        print(f'Recieved request ipaddr')
         ipaddr = request.ipaddr
         port = request.port
-        print(f'Recieved request: ipaddr = {request.ipaddr}, port = {request.port}')
         ipaddr_port = ipaddr + ":" + str(port)
 
         if ipaddr_port in self.addresses:
@@ -62,13 +54,11 @@ class ServiceHandler(pb2_grpc.RegistryServicer):
             return pb2.TPopulateFingerTableResponse(nodes = [])
 
         id = request.id
-        print("Populating finger table for node " + str(id))
         ids_in_table = set()
         finger_table = []
 
         pred_id, pred_addr = self.get_predecessor(id)
         finger_table.append(pb2.TIdAndAddr(id = pred_id, port_and_addr = pred_addr))
-        self.print_node("Predecessor", pred_id, pred_addr)
 
         pow = 1
         for i in range(0, self.m):

@@ -37,14 +37,12 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         print("Connected to Registry")
 
     def in_left(self, left, right, k):
-        print(f'Checking in_left for {left}, {right}')
         if right > left:
             return k >= left and k < right
         else:
             return (k >= left and k < self.m_pow) or (k < right)
     
     def in_right(self, left, right, k):
-        print(f'Checking in_right for {left}, {right}')
         if right > left:
             return k > left and k <= right
         else:
@@ -63,7 +61,6 @@ class ServiceHandler(pb2_grpc.NodeServicer):
 
     def get_finger_table(self, request, context):
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
-        print(finger_table)
         return pb2.TGetFingerTableResponse(id = self.id, nodes = finger_table[1:])
 
     def save(self, request, context):
@@ -73,11 +70,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         target_id = hash_value % self.m_pow
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
 
-        print(f'Finger table for node {self.id} is: ')
-        print(finger_table)
-
         lookup_result = self.lookup(finger_table.nodes, target_id)
-        print(f'SAVE: lookup_result for target_id: {target_id} is {lookup_result}')
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -108,8 +101,6 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
 
         lookup_result = self.lookup(finger_table.nodes, target_id)
-        print(f'REMOVE: lookup_result for target_id: {target_id} is {lookup_result}')
-
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -140,10 +131,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         target_id = hash_value % self.m_pow
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id))
 
-        print(f'Finger table for node {self.id} is: ')
-        print(finger_table)
         lookup_result = self.lookup(finger_table.nodes, target_id)
-        print(f'FIND: lookup_result for target_id: {target_id} is {lookup_result}')
 
         if(lookup_result==-1):
             print("Lookup failure")
@@ -171,7 +159,7 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
         if len(finger_table) < 2:
             return pb2.TSuccessResponse(is_successful=True, message = f'No second node')
-        ip_and_port = finger_table[1]
+        ip_and_port = finger_table[1].port_and_addr
         new_channel = grpc.insecure_channel(ip_and_port)
         new_node_stub = pb2_grpc.NodeStub(new_channel) 
         try:
@@ -186,7 +174,6 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         for k, v in self.table.items():
             while not self.try_saving_to_succ(k, v).is_successful:
                 cnt += 1
-            print(f'Saved ky {k} after {cnt} attempts')
 
 class ConnectHandler(pb2_grpc.RegistryServicer):
     def service_info(self, request, context):

@@ -32,8 +32,6 @@ class Client:
 
         service_info = stub.service_info(pb2.TEmpty())
 
-        print("got service info: " + f'{service_info}')
-
         return service_info.message
 
     def main_function(self):    
@@ -78,19 +76,18 @@ class Client:
                     text = ' '.join(str(e) for e in command)
                     value_to_save = pb2.TSaveRequest(key = key, text = text)
                     response = self.stub.save(value_to_save)
-                    print(response)
+                    print(response.message)
                     
                 # Remove
                 elif(command[0] == "remove"):
                     value_to_remove = pb2.TKeyRequest(key = command[1])
                     response = self.stub.remove(value_to_remove)
-                    print(response)
+                    print(response.message)
                     
                 # Find
                 elif(command[0] == "find"):
                     value_to_find = pb2.TKeyRequest(key = command[1])
                     response = self.stub.find(value_to_find)
-                    print(response)
                     success = response.is_successful
                     message = response.message
                     id = message.split(' ')
