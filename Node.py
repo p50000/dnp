@@ -36,6 +36,26 @@ class ServiceHandler(pb2_grpc.NodeServicer):
         self.table = dict()
         print("Connected to Registry")
 
+        finger_table = self.registry_stub.populate_finger_table(pb2.TPopulateFingerTableRequest(id = self.id)).nodes
+        # getting values from successor
+        if (len(finger_table) >= 2):
+            id = finger_table[1].id
+            if self.id == id:
+                return
+            ip_and_port = finger_table[1].port_and_addr
+            new_channel = grpc.insecure_channel(ip_and_port)
+            new_node_stub = pb2_grpc.NodeStub(new_channel) 
+            values = new_node_stub.get_values(pb2.TGetValuesRequest(id = self.id)).values
+            for value in values:
+                k = value.key
+                v = value.text
+                #print(f'Gol {k}, {v} for node {self.id}')
+                hash_value = zlib.adler32(k.encode())
+                target_id = hash_value % self.m_pow
+                if not self.in_right(self.id, id, target_id):
+                    #print(f'Saving {k}, {v} in node {self.id}')
+                    self.table[k] = v
+
     def in_left(self, left, right, k):
         if right > left:
             return k >= left and k < right
@@ -57,6 +77,20 @@ class ServiceHandler(pb2_grpc.NodeServicer):
             if self.in_left(finger_table[i].id, finger_table[i + 1].id, k):
                 return finger_table[i].id
         return -1
+
+    def get_values(self, request, context):
+        pred_id = request.id
+        ans = []
+        for k, v in self.table.items():
+            ans.append(pb2.TKeyValue(key = k, text = v))
+        for value in ans:
+            k = value.key
+            v = value.text
+            hash_value = zlib.adler32(k.encode())
+            target_id = hash_value % self.m_pow
+            if not self.in_right(pred_id, self.id, target_id):
+                del self.table[k]
+        return pb2.TGetValuesResponse(values = ans)
 
 
     def get_finger_table(self, request, context):

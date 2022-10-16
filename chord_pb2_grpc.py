@@ -179,6 +179,11 @@ class NodeStub(object):
                 request_serializer=chord__pb2.TEmpty.SerializeToString,
                 response_deserializer=chord__pb2.TGetFingerTableResponse.FromString,
                 )
+        self.get_values = channel.unary_unary(
+                '/Node/get_values',
+                request_serializer=chord__pb2.TGetValuesRequest.SerializeToString,
+                response_deserializer=chord__pb2.TGetValuesResponse.FromString,
+                )
         self.save = channel.unary_unary(
                 '/Node/save',
                 request_serializer=chord__pb2.TSaveRequest.SerializeToString,
@@ -200,6 +205,12 @@ class NodeServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def get_finger_table(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def get_values(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -230,6 +241,11 @@ def add_NodeServicer_to_server(servicer, server):
                     servicer.get_finger_table,
                     request_deserializer=chord__pb2.TEmpty.FromString,
                     response_serializer=chord__pb2.TGetFingerTableResponse.SerializeToString,
+            ),
+            'get_values': grpc.unary_unary_rpc_method_handler(
+                    servicer.get_values,
+                    request_deserializer=chord__pb2.TGetValuesRequest.FromString,
+                    response_serializer=chord__pb2.TGetValuesResponse.SerializeToString,
             ),
             'save': grpc.unary_unary_rpc_method_handler(
                     servicer.save,
@@ -270,6 +286,23 @@ class Node(object):
         return grpc.experimental.unary_unary(request, target, '/Node/get_finger_table',
             chord__pb2.TEmpty.SerializeToString,
             chord__pb2.TGetFingerTableResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def get_values(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/Node/get_values',
+            chord__pb2.TGetValuesRequest.SerializeToString,
+            chord__pb2.TGetValuesResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
